@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Murim Clicker</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body style="background-color:#2d2d30;">
+
+    <p id="cultivationLevelText" style="color:white; font-size: 60px; text-align: center; margin-top: 20px;">Mortal</p>
+
+    <img draggable="false" class="image glow" src="images/mortal.png" onclick="addToScore()">
+
+    <p style="color:white;" class="qi-text">Qi: <span id="qi">0</span></p>
+
+    <p style="color:white;" class="qisec-text">Qi/s: <span id="qiPerSecond">0</span></p>
+
+    <!--Creates Breakthrough Button-->
+    <button onclick="breakthrough()" id="breakthrough-button" class="breakthrough-button rounded">
+        <div class="progress-bar"></div>
+        Breakthrough <span id="breakthroughCost">25</span>
+    </button>
+
+    <script>
+        var qi = 0;
+        var qiPerSecond = 0;
+        var qiPerClick = 1; // Initial Qi per click
+
+        var breakthroughCost = 25;
+        var cultivationLevel = -1; // Start with -1 to show "Mortal" before the first breakthrough
+        var breakthroughCostMultiplier = 2.02; // Exponential growth factor for breakthrough cost
+
+        // List of cultivation levels
+        const levelText = [
+            "Mortal",
+            "Body Tempering I", "Body Tempering II", "Body Tempering III", "Body Tempering IV", "Body Tempering V",
+            "Body Tempering VI", "Body Tempering VII", "Body Tempering VIII", "Body Tempering IX", "Body Tempering X",
+            "Qi Condensation I", "Qi Condensation II", "Qi Condensation III", "Qi Condensation IV", "Qi Condensation V",
+            "Qi Condensation VI", "Qi Condensation VII", "Qi Condensation VIII", "Qi Condensation IX", "Qi Condensation X",
+            "Foundation Establishment I", "Foundation Establishment II", "Foundation Establishment III", "Foundation Establishment IV", "Foundation Establishment V",
+            "Foundation Establishment VI", "Foundation Establishment VII", "Foundation Establishment VIII", "Foundation Establishment IX", "Foundation Establishment X",
+            "Core Formation I", "Core Formation II", "Core Formation III", "Core Formation IV", "Core Formation V",
+            "Core Formation VI", "Core Formation VII", "Core Formation VIII", "Core Formation IX", "Core Formation X",
+            "Soul Formation I", "Soul Formation II", "Soul Formation III", "Soul Formation IV", "Soul Formation V",
+            "Soul Formation VI", "Soul Formation VII", "Soul Formation VIII", "Soul Formation IX", "Soul Formation X",
+            "Saint - Initial Stage", "Saint - Middle Stage", "Saint - Final Stage",
+            "Emperor - Initial Stage", "Emperor - Middle Stage", "Emperor - Final Stage",
+            "Supreme Emperor - Initial Stage", "Supreme Emperor - Middle Stage", "Supreme Emperor - Final Stage",
+            "Great Emperor - Initial Stage", "Great Emperor - Middle Stage", "Great Emperor - Final Stage",
+            "Transcendent", "Immortal"
+        ];
+
+        // Multipliers for different breakthroughs
+        const minorMultiplier = 2;
+        const majorMultiplier = 5; // Larger multiplier for major breakthroughs
+
+        // Major Breakthrough Levels
+        const majorBreakthroughLevels = [
+            10,   // From Body Tempering X to Qi Condensation I
+            20,  // From Qi Condensation X to Foundation Establishment I
+            30,  // From Foundation Establishment X to Core Formation I
+            40,  // From Core Formation X to Soul Formation I
+            50,  // From Soul Formation X to Saint - Initial Stage
+            53,  // From Saint - Final Stage to Emperor - Initial Stage
+            56,  // From Emperor - Final Stage to Supreme Emperor - Initial Stage
+            59,  // From Supreme Emperor - Final Stage to Great Emperor - Initial Stage
+            62   // From Great Emperor - Final Stage to Transcendent
+        ];
+
+        function breakthrough() {
+            if (cultivationLevel >= levelText.length - 1) {
+                // Prevent breakthrough if already at Immortal
+                return;
+            }
+
+            if (qi >= breakthroughCost) {
+                qi -= breakthroughCost;
+                cultivationLevel++;
+
+                // Determine if the breakthrough is a major one
+                let isMajorBreakthrough = majorBreakthroughLevels.includes(cultivationLevel);
+
+                // Initialize qiPerSecond for specific levels
+                if (cultivationLevel === 0) { // Body Tempering I
+                    qiPerSecond = 1;
+                }
+
+                // Apply the multiplier based on the type of breakthrough
+                if (isMajorBreakthrough) {
+                    qiPerSecond *= majorMultiplier;
+                } else {
+                    qiPerSecond *= minorMultiplier;
+                }
+
+                // Increase qiPerClick linearly
+                qiPerClick *= 1.75; // Apply a smaller multiplier
+
+                // Increase breakthroughCost exponentially
+                breakthroughCost = Math.round(breakthroughCost * breakthroughCostMultiplier);
+
+                updateDisplay();
+                updateCultivationLevelText();
+            }
+        }
+
+        function addToScore() {
+            qi += qiPerClick; // Use the new linear multiplier for qiPerClick
+            updateDisplay();
+        }
+
+        function formatNumber(value) {
+            if (value >= 1e24) {
+                return (value / 1e24).toFixed(1) + 'Sp'; // Septillion
+            } else if (value >= 1e21) {
+                return (value / 1e21).toFixed(1) + 'S'; // Sextillion
+            } else if (value >= 1e18) {
+                return (value / 1e18).toFixed(1) + 'Qi'; // Quintillion
+            } else if (value >= 1e15) {
+                return (value / 1e15).toFixed(1) + 'Q'; // Quadrillions
+            } else if (value >= 1e12) {
+                return (value / 1e12).toFixed(1) + 'T'; // Trillions
+            } else if (value >= 1e9) {
+                return (value / 1e9).toFixed(1) + 'B'; // Billions
+            } else if (value >= 1e6) {
+                return (value / 1e6).toFixed(1) + 'M'; // Millions
+            } else if (value >= 1e3) {
+                return (value / 1e3).toFixed(1) + 'k'; // Thousands
+            } else {
+                return value.toString(); // Less than a thousand
+            }
+        }
+
+        function updateDisplay() {
+            // Round down the Qi value and format it
+            document.getElementById("qi").innerHTML = formatNumber(Math.floor(qi));
+            document.getElementById("qiPerSecond").innerHTML = formatNumber(Math.floor(qiPerSecond));
+            document.getElementById("breakthroughCost").innerHTML = formatNumber(Math.floor(breakthroughCost));
+            updateProgress(Math.floor(qi));
+        }
+
+        function updateProgress(qi) {
+            const progressBar = document.querySelector('.progress-bar');
+            const progressPercentage = Math.min(100, (qi / breakthroughCost) * 100);
+            progressBar.style.width = progressPercentage + '%';
+        }
+
+        function updateCultivationLevelText() {
+            const cultivationLevelText = levelText[cultivationLevel + 1] || "Immortal";
+            document.getElementById("cultivationLevelText").innerText = cultivationLevelText;
+            updateButtonVisibility();
+        }
+
+        function updateButtonVisibility() {
+            // Hide the breakthrough button if the player is at or above Immortal
+            const breakthroughButton = document.getElementById("breakthrough-button");
+            if (cultivationLevel >= levelText.length - 1) {
+                breakthroughButton.style.display = "none";
+            } else {
+                breakthroughButton.style.display = "block";
+            }
+        }
+
+        // Update Qi based on qiPerSecond every second
+        setInterval(function() { 
+            if (cultivationLevel < levelText.length - 1) { // Only add qi if not at Immortal
+                qi += qiPerSecond;
+                updateDisplay();
+            }
+        }, 1000); //1000ms = 1 sec
+
+    </script>
+</body>
+</html>
+
+<!--fix progression, at point gets more per second than cost,
+at moment stops getting qi once reached immortal, fix
+add way to transcend aka reset but get a random artifact that gives base multi!!!!
+one could give a click multi, one idle multi, one reduces breakthrough cost, multiple of each 1.25x, 1,5x, 2x, 2.5x type
+can equip 2 at a time so player has to chose what they want, idle and cheaper breakthrough etc.
+-->
