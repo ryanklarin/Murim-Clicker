@@ -16,20 +16,76 @@
 
     <p style="color:white;" class="qisec-text">Qi/s: <span id="qiPerSecond">0</span></p>
 
-    <!--Creates Breakthrough Button-->
-    <button onclick="breakthrough()" id="breakthrough-button" class="breakthrough-button rounded">
-        <div class="progress-bar"></div>
-        Breakthrough <span id="breakthroughCost">25</span>
+    <div id="button-container">
+        <button onclick="breakthrough()" id="breakthrough-button" class="breakthrough-button rounded">
+            <div class="progress-bar"></div>
+            Breakthrough <span id="breakthroughCost">25</span>
+        </button>
+
+        <button onclick="rebirth()" id="rebirth-button" class="breakthrough-button rounded" style="display: none;">
+            <div class="progress-bar"></div>
+            Rebirth <span id="rebirthCost">25</span>
+        </button>
+
+        <p class="rebirth-info">Rebirth <span id="rebirthCount">0</span> - <span id="rebirthMultiplier">1</span>x</p>
+    </div>
+
+    <!-- Reset Button -->
+    <button id="reset-button" class="reset-button" onclick="showResetConfirmation()">RESET</button>
+
+    <!-- Reset Confirmation Dialog -->
+    <div id="reset-confirmation" class="reset-confirmation" style="display: none;">
+        <div class="reset-dialog">
+            <h2>Reset Game</h2>
+            <p>Are you sure you want to reset ALL data? This cannot be undone!</p>
+            <div class="reset-buttons">
+                <button onclick="resetGame()" class="confirm-reset">Yes, Reset Everything</button>
+                <button onclick="hideResetConfirmation()" class="cancel-reset">No, Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Amulet System UI -->
+    <button id="inventory-button" class="inventory-button" onclick="toggleInventory()">
+        <img src="images/bag.png" alt="Inventory" style="width: 30px; height: 30px;">
     </button>
+
+    <button id="avatar-button" class="avatar-button" onclick="goToAvatarSelection()">
+        <img src="images/avatar.png" alt="Avatar" style="width: 30px; height: 30px;">
+    </button>
+
+    <div id="inventory-menu" class="inventory-menu" style="display: none;">
+        <div class="inventory-header">
+            <h2>Amulet Inventory</h2>
+            <button onclick="toggleInventory()" class="close-button">×</button>
+        </div>
+        <div class="equipment-slots">
+            <h3>Equipped Amulets</h3>
+            <div id="equipment-slots" class="equipment-grid">
+                <!-- Equipment slots will be added here -->
+            </div>
+        </div>
+        <div class="inventory-grid">
+            <h3>Inventory</h3>
+            <div id="inventory-grid" class="inventory-grid">
+                <!-- Inventory slots will be added here -->
+            </div>
+        </div>
+    </div>
 
     <script>
         var qi = 0;
         var qiPerSecond = 0;
+        var baseQiPerSecond = 2; // Base Qi per second
+        var currentQiPerSecond = 0; // Store the current calculated qi/s
         var qiPerClick = 1; // Initial Qi per click
+        var rebirthMultiplier = 1; // Base multiplier
+        var rebirthCount = 0; // Track number of rebirths
+        var lastMajorBreakthrough = -1; // Track the last major breakthrough level
 
         var breakthroughCost = 25;
         var cultivationLevel = -1; // Start with -1 to show "Mortal" before the first breakthrough
-        var breakthroughCostMultiplier = 2.02; // Exponential growth factor for breakthrough cost
+        var breakthroughCostMultiplier = 1.5; // Base cost multiplier
 
         // List of cultivation levels
         const levelText = [
@@ -52,8 +108,9 @@
         ];
 
         // Multipliers for different breakthroughs
-        const minorMultiplier = 2;
-        const majorMultiplier = 5; // Larger multiplier for major breakthroughs
+        const minorMultiplier = 2.5;
+        const majorMultiplier = 8;
+        const majorBreakthroughCostMultiplier = 5;
 
         // Major Breakthrough Levels
         const majorBreakthroughLevels = [
@@ -68,9 +125,90 @@
             62   // From Great Emperor - Final Stage to Transcendent
         ];
 
+        // Amulet System
+        const amuletTiers = {
+            wooden: { multiplier: 1.25, chance: 0.4 },
+            stone: { multiplier: 1.5, chance: 0.25 },
+            bone: { multiplier: 2, chance: 0.15 },
+            silver: { multiplier: 2.5, chance: 0.1 },
+            gold: { multiplier: 3, chance: 0.07 },
+            emerald: { multiplier: 4, chance: 0.03 }
+        };
+
+        const amuletTypes = {
+            power: { name: "Power", effect: "click" },
+            patience: { name: "Patience", effect: "idle" }
+        };
+
+        var inventory = [];
+        var equippedAmulets = [];
+        var maxEquippedSlots = 2; // Base number of slots
+
+        var selectedAvatar = localStorage.getItem('selectedAvatar') || 'male.png';
+
+        function calculateRebirthCost() {
+            // Calculate what the next major breakthrough would cost
+            let tempCost = breakthroughCost;
+            let tempLevel = cultivationLevel;
+            let costScaling = 1 + (tempLevel * 0.025);
+            return Math.round(tempCost * breakthroughCostMultiplier * costScaling * majorBreakthroughCostMultiplier + (rebirthCount * 250));
+        }
+
+        function calculateBaseQi(level) {
+            // Find the last major breakthrough before or at this level
+            let lastMajor = -1;
+            for (let i = 0; i <= level; i++) {
+                if (majorBreakthroughLevels.includes(i)) {
+                    lastMajor = i;
+                }
+            }
+
+            // Calculate base growth
+            let baseGrowth = Math.pow(1.75, level);
+            
+            // Add boost around Foundation Establishment (level 20)
+            if (level >= 20 && level < 30) {
+                baseGrowth *= 1.5; // 50% boost for Foundation Establishment
+            } else if (level >= 30 && level < 40) {
+                baseGrowth *= 2; // 100% boost for Core Formation
+            } else if (level >= 40 && level < 50) {
+                baseGrowth *= 2.5; // 150% boost for Soul Formation
+            } else if (level >= 50 && level < 53) {
+                baseGrowth *= 3; // 200% boost for Saint - Initial Stage
+            }
+            
+            // If we've had a major breakthrough, multiply by its effect
+            if (lastMajor !== -1) {
+                baseGrowth *= majorMultiplier;
+            }
+
+            return baseQiPerSecond * baseGrowth;
+        }
+
+        function updateQiPerSecond() {
+            // Calculate base qi/s
+            let baseQi = calculateBaseQi(cultivationLevel);
+            
+            // Apply breakthrough multiplier (only for minor breakthroughs)
+            let breakthroughMultiplier = majorBreakthroughLevels.includes(cultivationLevel) ? 1 : minorMultiplier;
+            
+            // Apply rebirth multiplier
+            let totalMultiplier = breakthroughMultiplier * rebirthMultiplier;
+            
+            // Apply amulet multipliers
+            equippedAmulets.forEach(amulet => {
+                if (amulet.type === 'patience') {
+                    totalMultiplier *= amulet.multiplier;
+                }
+            });
+            
+            // Update the current qi/s
+            currentQiPerSecond = baseQi * totalMultiplier;
+        }
+
         function breakthrough() {
-            if (cultivationLevel >= levelText.length - 1) {
-                // Prevent breakthrough if already at Immortal
+            // Prevent breakthrough if already at Immortal
+            if (cultivationLevel >= levelText.length - 2) {
                 return;
             }
 
@@ -78,34 +216,61 @@
                 qi -= breakthroughCost;
                 cultivationLevel++;
 
-                // Determine if the breakthrough is a major one
-                let isMajorBreakthrough = majorBreakthroughLevels.includes(cultivationLevel);
+                // Update qiPerSecond calculation
+                updateQiPerSecond();
 
-                // Initialize qiPerSecond for specific levels
-                if (cultivationLevel === 0) { // Body Tempering I
-                    qiPerSecond = 1;
-                }
-
-                // Apply the multiplier based on the type of breakthrough
-                if (isMajorBreakthrough) {
-                    qiPerSecond *= majorMultiplier;
+                // Increase qiPerClick with diminishing returns
+                // Major breakthroughs give a bigger click boost
+                if (majorBreakthroughLevels.includes(cultivationLevel)) {
+                    if (cultivationLevel < 30) {
+                        qiPerClick *= 3; // Big boost for early major breakthroughs
+                    } else {
+                        qiPerClick *= 2; // Smaller boost for later major breakthroughs
+                    }
                 } else {
-                    qiPerSecond *= minorMultiplier;
+                    if (cultivationLevel < 30) {
+                        qiPerClick *= 1.8; // Strong early growth
+                    } else {
+                        qiPerClick *= (1.3 + (1 / (cultivationLevel + 5))); // Reduced scaling later
+                    }
                 }
 
-                // Increase qiPerClick linearly
-                qiPerClick *= 1.75; // Apply a smaller multiplier
+                // Increase breakthroughCost with dynamic scaling
+                let costScaling = 1 + (cultivationLevel * 0.025); // Slightly smaller scaling
+                let baseCostIncrease = breakthroughCostMultiplier * costScaling;
+                if (majorBreakthroughLevels.includes(cultivationLevel)) {
+                    baseCostIncrease *= majorBreakthroughCostMultiplier; // Keeps major breakthroughs impactful
+                }
+                breakthroughCost = Math.round(breakthroughCost * baseCostIncrease);
 
-                // Increase breakthroughCost exponentially
-                breakthroughCost = Math.round(breakthroughCost * breakthroughCostMultiplier);
+                // Visual feedback for major breakthroughs
+                if (majorBreakthroughLevels.includes(cultivationLevel)) {
+                    document.getElementById("cultivationLevelText").style.color = "#FFD700"; // Gold color
+                    setTimeout(() => {
+                        document.getElementById("cultivationLevelText").style.color = "white";
+                    }, 2000);
+                }
 
                 updateDisplay();
                 updateCultivationLevelText();
+
+                // If we just reached Immortal, immediately update button visibility
+                if (cultivationLevel >= levelText.length - 2) {
+                    updateButtonVisibility();
+                }
             }
         }
 
         function addToScore() {
-            qi += qiPerClick; // Use the new linear multiplier for qiPerClick
+            // Calculate click multiplier from amulets
+            let clickMultiplier = 1;
+            equippedAmulets.forEach(amulet => {
+                if (amulet.type === 'power') {
+                    clickMultiplier *= amulet.multiplier;
+                }
+            });
+            
+            qi += qiPerClick * rebirthMultiplier * clickMultiplier;
             updateDisplay();
         }
 
@@ -134,14 +299,18 @@
         function updateDisplay() {
             // Round down the Qi value and format it
             document.getElementById("qi").innerHTML = formatNumber(Math.floor(qi));
-            document.getElementById("qiPerSecond").innerHTML = formatNumber(Math.floor(qiPerSecond));
+            document.getElementById("qiPerSecond").innerHTML = formatNumber(Math.floor(currentQiPerSecond));
             document.getElementById("breakthroughCost").innerHTML = formatNumber(Math.floor(breakthroughCost));
+            document.getElementById("rebirthCost").innerText = formatNumber(Math.floor(calculateRebirthCost()));
+            document.getElementById("rebirthCount").innerText = rebirthCount;
+            document.getElementById("rebirthMultiplier").innerText = rebirthMultiplier;
             updateProgress(Math.floor(qi));
         }
 
         function updateProgress(qi) {
             const progressBar = document.querySelector('.progress-bar');
-            const progressPercentage = Math.min(100, (qi / breakthroughCost) * 100);
+            const currentCost = cultivationLevel >= levelText.length - 1 ? calculateRebirthCost() : breakthroughCost;
+            const progressPercentage = Math.min(100, (qi / currentCost) * 100);
             progressBar.style.width = progressPercentage + '%';
         }
 
@@ -152,30 +321,333 @@
         }
 
         function updateButtonVisibility() {
-            // Hide the breakthrough button if the player is at or above Immortal
+            const buttonContainer = document.getElementById("button-container");
             const breakthroughButton = document.getElementById("breakthrough-button");
-            if (cultivationLevel >= levelText.length - 1) {
-                breakthroughButton.style.display = "none";
+            const rebirthButton = document.getElementById("rebirth-button");
+            
+            // Debug log for button visibility check
+            console.log("Checking button visibility. Level:", cultivationLevel, "Is Immortal:", cultivationLevel >= levelText.length - 2);
+            
+            if (cultivationLevel >= levelText.length - 2) { // Changed from length - 1 to length - 2
+                // At Immortal, remove breakthrough button and show rebirth button
+                if (breakthroughButton) {
+                    breakthroughButton.remove();
+                }
+                rebirthButton.style.display = "block";
+                rebirthButton.innerHTML = `
+                    <div class="progress-bar"></div>
+                    Rebirth <span id="rebirthCost">${formatNumber(calculateRebirthCost())}</span>
+                `;
             } else {
-                breakthroughButton.style.display = "block";
+                // Not at Immortal, ensure breakthrough button exists
+                if (!breakthroughButton) {
+                    const newBreakthroughButton = document.createElement("button");
+                    newBreakthroughButton.id = "breakthrough-button";
+                    newBreakthroughButton.className = "breakthrough-button rounded";
+                    newBreakthroughButton.onclick = breakthrough;
+                    newBreakthroughButton.innerHTML = `
+                        <div class="progress-bar"></div>
+                        Breakthrough <span id="breakthroughCost">${formatNumber(breakthroughCost)}</span>
+                    `;
+                    buttonContainer.insertBefore(newBreakthroughButton, rebirthButton);
+                }
+                rebirthButton.style.display = "none";
             }
         }
 
         // Update Qi based on qiPerSecond every second
         setInterval(function() { 
-            if (cultivationLevel < levelText.length - 1) { // Only add qi if not at Immortal
-                qi += qiPerSecond;
+            if (cultivationLevel < levelText.length - 1) {
+                qi += currentQiPerSecond;
                 updateDisplay();
             }
-        }, 1000); //1000ms = 1 sec
+        }, 1000);
+
+        function generateAmulet() {
+            // Determine tier based on chances
+            let roll = Math.random();
+            let selectedTier = "wooden";
+            let cumulativeChance = 0;
+            
+            for (const [tier, data] of Object.entries(amuletTiers)) {
+                cumulativeChance += data.chance;
+                if (roll <= cumulativeChance) {
+                    selectedTier = tier;
+                    break;
+                }
+            }
+
+            // Determine type (50/50 chance)
+            const type = Math.random() < 0.5 ? "power" : "patience";
+            
+            return {
+                id: Date.now() + Math.random(),
+                tier: selectedTier,
+                type: type,
+                multiplier: amuletTiers[selectedTier].multiplier
+            };
+        }
+
+        function updateMaxSlots() {
+            if (rebirthCount >= 10) {
+                maxEquippedSlots = 4;
+            } else if (rebirthCount >= 5) {
+                maxEquippedSlots = 3;
+            } else {
+                maxEquippedSlots = 2;
+            }
+            updateInventoryDisplay();
+        }
+
+        function toggleInventory() {
+            const menu = document.getElementById("inventory-menu");
+            menu.style.display = menu.style.display === "none" ? "block" : "none";
+        }
+
+        function updateInventoryDisplay() {
+            const inventoryGrid = document.getElementById("inventory-grid");
+            const equipmentSlots = document.getElementById("equipment-slots");
+            
+            // Clear existing displays
+            inventoryGrid.innerHTML = "";
+            equipmentSlots.innerHTML = "";
+
+            // Create equipment slots (always show all possible slots)
+            for (let i = 0; i < 4; i++) {
+                const slot = document.createElement("div");
+                slot.className = "equipment-slot";
+                
+                if (i < maxEquippedSlots) {
+                    // Available slot
+                    slot.innerHTML = `
+                        <div class="amulet-slot ${equippedAmulets[i] ? 'filled' : ''}" 
+                             onclick="unequipAmulet(${i})">
+                            ${equippedAmulets[i] ? formatAmuletDisplay(equippedAmulets[i]) : 'Empty Slot'}
+                        </div>
+                    `;
+                } else {
+                    // Locked slot
+                    const rebirthsNeeded = i === 2 ? 5 : 10;
+                    slot.innerHTML = `
+                        <div class="amulet-slot locked">
+                            <div class="locked-text">Locked</div>
+                            <div class="rebirth-requirement">${rebirthsNeeded} Rebirths Required</div>
+                        </div>
+                    `;
+                }
+                equipmentSlots.appendChild(slot);
+            }
+
+            // Display inventory
+            inventory.forEach((amulet, index) => {
+                const amuletElement = document.createElement("div");
+                amuletElement.className = "amulet-item";
+                amuletElement.innerHTML = formatAmuletDisplay(amulet);
+                amuletElement.onclick = () => equipAmulet(index);
+                inventoryGrid.appendChild(amuletElement);
+            });
+        }
+
+        function formatAmuletDisplay(amulet) {
+            return `
+                <div class="amulet ${amulet.tier}">
+                    <div class="amulet-name">${amulet.tier.charAt(0).toUpperCase() + amulet.tier.slice(1)} Amulet of ${amuletTypes[amulet.type].name}</div>
+                    <div class="amulet-effect">${amulet.multiplier}x ${amulet.type === 'power' ? 'Click' : 'Qi/s'} Power</div>
+                </div>
+            `;
+        }
+
+        function equipAmulet(inventoryIndex) {
+            // Check if we have an available slot
+            if (equippedAmulets.length >= maxEquippedSlots) {
+                return; // Don't equip if no slots available
+            }
+            
+            // Check if the slot we're trying to use is locked
+            const nextSlotIndex = equippedAmulets.length;
+            if (nextSlotIndex >= maxEquippedSlots) {
+                return; // Don't equip if the slot is locked
+            }
+
+            equippedAmulets.push(inventory[inventoryIndex]);
+            inventory.splice(inventoryIndex, 1);
+            updateInventoryDisplay();
+            updateQiPerSecond(); // Update qi/s when equipping amulets
+        }
+
+        function unequipAmulet(slotIndex) {
+            // Check if the slot is valid and has an amulet
+            if (slotIndex >= maxEquippedSlots || !equippedAmulets[slotIndex]) {
+                return; // Don't unequip if slot is locked or empty
+            }
+
+            inventory.push(equippedAmulets[slotIndex]);
+            equippedAmulets.splice(slotIndex, 1);
+            updateInventoryDisplay();
+            updateQiPerSecond(); // Update qi/s when unequipping amulets
+        }
+
+        function rebirth() {
+            if (qi >= calculateRebirthCost()) {
+                qi = 0;
+                qiPerSecond = 0;
+                qiPerClick = 1;
+                breakthroughCost = 25;
+                cultivationLevel = -1;
+                rebirthCount++;
+                rebirthMultiplier *= 2;
+
+                // Generate new amulet
+                inventory.push(generateAmulet());
+
+                // Update max slots based on rebirth count
+                updateMaxSlots();
+
+                // Update qi/s calculation
+                updateQiPerSecond();
+
+                // Update display
+                document.getElementById("rebirthCount").innerText = rebirthCount;
+                document.getElementById("rebirthMultiplier").innerText = rebirthMultiplier;
+
+                // Reset buttons
+                const buttonContainer = document.getElementById("button-container");
+                buttonContainer.innerHTML = `
+                    <button onclick="breakthrough()" id="breakthrough-button" class="breakthrough-button rounded">
+                        <div class="progress-bar"></div>
+                        Breakthrough <span id="breakthroughCost">25</span>
+                    </button>
+                    <button onclick="rebirth()" id="rebirth-button" class="breakthrough-button rounded" style="display: none;">
+                        <div class="progress-bar"></div>
+                        Rebirth <span id="rebirthCost">25</span>
+                    </button>
+                    <p class="rebirth-info">Rebirth <span id="rebirthCount">0</span> - <span id="rebirthMultiplier">1</span>x</p>
+                `;
+
+                updateDisplay();
+                updateCultivationLevelText();
+            }
+        }
+
+        // Add save/load functionality for amulets
+        function saveGame() {
+            const gameState = {
+                qi: qi,
+                qiPerSecond: qiPerSecond,
+                currentQiPerSecond: currentQiPerSecond,
+                qiPerClick: qiPerClick,
+                rebirthMultiplier: rebirthMultiplier,
+                rebirthCount: rebirthCount,
+                breakthroughCost: breakthroughCost,
+                cultivationLevel: cultivationLevel,
+                inventory: inventory,
+                equippedAmulets: equippedAmulets
+            };
+            localStorage.setItem('murimClickerSave', JSON.stringify(gameState));
+        }
+
+        function loadGame() {
+            const savedGame = localStorage.getItem('murimClickerSave');
+            if (savedGame) {
+                const gameState = JSON.parse(savedGame);
+                qi = gameState.qi;
+                qiPerSecond = gameState.qiPerSecond;
+                currentQiPerSecond = gameState.currentQiPerSecond || 0;
+                qiPerClick = gameState.qiPerClick;
+                rebirthMultiplier = gameState.rebirthMultiplier;
+                rebirthCount = gameState.rebirthCount;
+                breakthroughCost = gameState.breakthroughCost;
+                cultivationLevel = gameState.cultivationLevel;
+                inventory = gameState.inventory;
+                equippedAmulets = gameState.equippedAmulets;
+                selectedAvatar = localStorage.getItem('selectedAvatar') || 'male.png';
+                updateAvatar();
+
+                // Recalculate qi/s to ensure it's correct
+                updateQiPerSecond();
+
+                updateDisplay();
+                updateCultivationLevelText();
+                updateMaxSlots();
+                updateInventoryDisplay();
+            }
+        }
+
+        // Auto-save every minute
+        setInterval(saveGame, 60000);
+
+        // Load game on start
+        loadGame();
+
+        function showResetConfirmation() {
+            document.getElementById("reset-confirmation").style.display = "flex";
+        }
+
+        function hideResetConfirmation() {
+            document.getElementById("reset-confirmation").style.display = "none";
+        }
+
+        function resetGame() {
+            // Reset all game variables
+            qi = 0;
+            qiPerSecond = 0;
+            currentQiPerSecond = 0;
+            qiPerClick = 1;
+            rebirthMultiplier = 1;
+            rebirthCount = 0;
+            breakthroughCost = 25;
+            cultivationLevel = -1;
+            lastMajorBreakthrough = -1;
+            inventory = [];
+            equippedAmulets = [];
+            maxEquippedSlots = 2;
+            selectedAvatar = 'male.png';
+
+            // Clear localStorage
+            localStorage.removeItem('murimClickerSave');
+
+            // Reset buttons
+            const buttonContainer = document.getElementById("button-container");
+            buttonContainer.innerHTML = `
+                <button onclick="breakthrough()" id="breakthrough-button" class="breakthrough-button rounded">
+                    <div class="progress-bar"></div>
+                    Breakthrough <span id="breakthroughCost">25</span>
+                </button>
+                <button onclick="rebirth()" id="rebirth-button" class="breakthrough-button rounded" style="display: none;">
+                    <div class="progress-bar"></div>
+                    Rebirth <span id="rebirthCost">25</span>
+                </button>
+                <p class="rebirth-info">Rebirth <span id="rebirthCount">0</span> - <span id="rebirthMultiplier">1</span>x</p>
+            `;
+
+            // Update all displays
+            updateQiPerSecond();
+            updateDisplay();
+            updateCultivationLevelText();
+            updateMaxSlots();
+            updateInventoryDisplay();
+
+            // Hide confirmation dialog
+            document.getElementById("reset-confirmation").style.display = "none";
+        }
+
+        function goToAvatarSelection() {
+            window.location.href = 'avatar.html';
+        }
+
+        function updateAvatar() {
+            const avatarImg = document.querySelector('.image.glow');
+            if (avatarImg) {
+                avatarImg.src = `images/${selectedAvatar}`;
+                // Adjust position for female cultivator
+                if (selectedAvatar === 'female.png') {
+                    avatarImg.style.top = '40%'; // Move down by 25px from 35%
+                } else {
+                    avatarImg.style.top = '35%'; // Reset to original position
+                }
+            }
+        }
 
     </script>
 </body>
 </html>
-
-<!--fix progression, at point gets more per second than cost,
-at moment stops getting qi once reached immortal, fix
-add way to transcend aka reset but get a random artifact that gives base multi!!!!
-one could give a click multi, one idle multi, one reduces breakthrough cost, multiple of each 1.25x, 1,5x, 2x, 2.5x type
-can equip 2 at a time so player has to chose what they want, idle and cheaper breakthrough etc.
--->

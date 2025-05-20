@@ -23,6 +23,16 @@ img {
     left: 50%;
     top: 35%;
     transform: translate(-50%, -50%);
+    width: auto;
+    height: auto;
+    max-width: 400px;
+    max-height: 400px;
+}
+
+/* Add specific style for female cultivator */
+.image[src*="female.png"] {
+    max-width: 400px;
+    max-height: 400px;
 }
 
 .qi-text {
@@ -37,23 +47,38 @@ img {
     transform: translateY(370px);
 }
 
-#breakthrough-button {
-  position: absolute;
-  top: 80%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.rebirth-info {
+    text-align: center;
+    font-size: 24px;
+    margin: 10px 0;
+    color: #FFD700;
+    font-weight: bold;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
 
-  cursor: pointer;
-  height: 8%;
-  width: 350px;
-  padding: 10px 20px;
+#button-container {
+    position: absolute;
+    top: 80%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
 
-  background-color: transparent;
-  color: black;
-  font-size: 25px;
-  border: 3px solid black;
-  border-radius: 12px;
-  overflow: hidden;
+#breakthrough-button, #rebirth-button {
+    position: relative;
+    cursor: pointer;
+    height: 8%;
+    width: 350px;
+    padding: 10px 20px;
+    background-color: transparent;
+    color: black;
+    font-size: 25px;
+    border: 3px solid black;
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .progress-bar {
@@ -69,4 +94,351 @@ img {
 
 .cultivation-text {
   top: 5%;
+}
+
+.rebirth-button {
+    display: none; /* Hidden by default, shown only at Immortal */
+    background-color: #4a4a4a;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 18px;
+    margin: 10px auto;
+    position: relative;
+    overflow: hidden;
+    width: 200px;
+}
+
+.rebirth-button:hover {
+    background-color: #5a5a5a;
+}
+
+.rebirth-count, .rebirth-multiplier {
+    text-align: center;
+    font-size: 20px;
+    margin: 5px 0;
+    color: #FFD700; /* Gold color for rebirth stats */
+}
+
+/* Amulet System Styles */
+.inventory-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4a4a4a;
+    border: 2px solid #666;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.inventory-button:hover {
+    background: #5a5a5a;
+    transform: scale(1.1);
+}
+
+.inventory-menu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2d2d30;
+    border: 2px solid #666;
+    border-radius: 10px;
+    padding: 20px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.inventory-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.equipment-grid, .inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-top: 10px;
+    padding: 10px;
+}
+
+.equipment-slot {
+    background: #3a3a3a;
+    border: 2px solid #666;
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    aspect-ratio: 1;
+}
+
+.equipment-slot:hover {
+    border-color: #888;
+}
+
+.equipment-slot.locked {
+    background: #2a2a2a;
+    border-color: #444;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.locked-text {
+    color: #ff4444;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.rebirth-requirement {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.amulet-item {
+    background: #3a3a3a;
+    border: 2px solid #666;
+    border-radius: 8px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.amulet-item:hover {
+    transform: scale(1.05);
+}
+
+.amulet {
+    text-align: center;
+    color: white;
+}
+
+.amulet-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.amulet-effect {
+    font-size: 0.9em;
+    color: #aaa;
+}
+
+/* Amulet Tier Colors */
+.amulet.wooden {
+    border-color: #8B4513;
+}
+
+.amulet.stone {
+    border-color: #808080;
+}
+
+.amulet.bone {
+    border-color: #DEB887;
+}
+
+.amulet.silver {
+    border-color: #C0C0C0;
+}
+
+.amulet.gold {
+    border-color: #FFD700;
+}
+
+.amulet.emerald {
+    border-color: #50C878;
+}
+
+/* Equipment slot filled state */
+.equipment-slot.filled {
+    border-color: #4CAF50;
+}
+
+/* Headers */
+.equipment-slots h3, .inventory-grid h3 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+.equipment-slots {
+    margin-bottom: 30px;
+    padding: 15px;
+    background: #333;
+    border-radius: 8px;
+}
+
+.inventory-grid {
+    padding: 15px;
+    background: #333;
+    border-radius: 8px;
+}
+
+/* Add a scrollbar style for the inventory */
+.inventory-menu::-webkit-scrollbar {
+    width: 10px;
+}
+
+.inventory-menu::-webkit-scrollbar-track {
+    background: #2d2d30;
+    border-radius: 5px;
+}
+
+.inventory-menu::-webkit-scrollbar-thumb {
+    background: #666;
+    border-radius: 5px;
+}
+
+.inventory-menu::-webkit-scrollbar-thumb:hover {
+    background: #888;
+}
+
+/* Reset Button and Dialog Styles */
+.reset-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #ff4444;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.reset-button:hover {
+    background: #ff0000;
+    transform: scale(1.05);
+}
+
+.reset-confirmation {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.reset-dialog {
+    background: #2d2d30;
+    border: 2px solid #ff4444;
+    border-radius: 10px;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    color: white;
+}
+
+.reset-dialog h2 {
+    color: #ff4444;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+.reset-dialog p {
+    margin-bottom: 30px;
+    font-size: 18px;
+    line-height: 1.5;
+}
+
+.reset-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.confirm-reset, .cancel-reset {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.confirm-reset {
+    background: #ff4444;
+    color: white;
+}
+
+.confirm-reset:hover {
+    background: #ff0000;
+    transform: scale(1.05);
+}
+
+.cancel-reset {
+    background: #4a4a4a;
+    color: white;
+}
+
+.cancel-reset:hover {
+    background: #5a5a5a;
+    transform: scale(1.05);
+}
+
+.avatar-button {
+    position: fixed;
+    top: 20px;
+    right: 80px; /* Position it next to the inventory button */
+    background-color: #4a4a4a;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+    z-index: 1000;
+}
+
+.avatar-button:hover {
+    background-color: #666;
+}
+
+.avatar-button img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
 }
