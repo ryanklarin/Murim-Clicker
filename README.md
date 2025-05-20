@@ -1,4 +1,4 @@
-Murim Clicker is a clicker game based on Korean concept of Murim and Chinese cultivation manhwas
+Murim Clicker is a clicker game based on the Korean concept of Murim and Chinese cultivation manhwas
 
 Patch v0.2
   - Rebirth
